@@ -77,29 +77,6 @@ O núcleo da arquitetura é o `EventBus`, uma implementação simples de Pub/Sub
 
 ### Passo a passo do fluxo principal
 
-```mermaid
-sequenceDiagram
-    participant U as Usuário
-    participant UI as render.js
-    participant State as appState.js
-    participant Bus as eventBus.js
-    participant API as apiService.js
-
-    U->>UI: Seleciona um usuário no <select>
-    UI->>State: loadUser(userId, userName)
-    State->>Bus: emit(LOADING_START)
-    Bus->>UI: notifica ouvintes
-    UI-->>U: exibe "Carregando..."
-    State->>API: getPostsAndComments(userId)
-    API-->>State: posts + comentários (cache ou rede)
-    State->>State: calculateMetrics()
-    State->>Bus: emit(METRICS_UPDATED, metrics)
-    Bus->>UI: notifica ouvintes
-    Bus->>UI: main.js também escuta e guarda "latestMetrics"
-    UI-->>U: renderiza métricas na tela
-    State->>Bus: emit(LOADING_END)
-```
-
 1. O usuário escolhe um perfil no `<select>` → `render.js` chama `appState.loadUser()`.
 2. `appState` emite `LOADING_START`; `render.js` reage exibindo a mensagem de carregamento.
 3. `appState` busca posts/comentários via `apiService` (que primeiro consulta o `dataCache`; só faz `fetch` se não houver dado em memória).
