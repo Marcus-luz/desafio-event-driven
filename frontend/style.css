@@ -1,0 +1,138 @@
+/* frontend/style.css */
+
+/* Reset básico para padronizar o navegador */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #F4F6F7; /* Fundo cinza claro */
+  color: #333333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+/* Card principal centralizado */
+.container {
+  background-color: #FFFFFF;
+  width: 100%;
+  max-width: 650px;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Títulos */
+h1 {
+  color: #1F3A93;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 2px solid #E9ECEF;
+}
+
+h2 {
+  color: #2C3E50;
+  font-size: 1.2rem;
+  margin: 1.5rem 0 1rem 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Inputs e Labels */
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #7F8C8D;
+  margin-bottom: 0.5rem;
+}
+
+select, input[type="number"] {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #CED4DA;
+  border-radius: 6px;
+  font-size: 1rem;
+  color: #495057;
+  background-color: #FFFFFF;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Efeito ao focar no campo */
+select:focus, input[type="number"]:focus {
+  outline: none;
+  border-color: #1F3A93;
+  box-shadow: 0 0 0 3px rgba(31, 58, 147, 0.15);
+}
+
+/* Área de Resultados gerada via JavaScript */
+#results {
+  min-height: 50px;
+}
+
+#results h3 {
+  color: #2C3E50;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+#results ul {
+  list-style: none;
+}
+
+#results li {
+  background-color: #F8F9FA;
+  margin-bottom: 0.6rem;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #1F3A93; /* Detalhe lateral azul */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+#results li strong {
+  color: #1F3A93;
+  font-size: 1.1rem;
+}
+
+/* Botão Primário */
+button#generateReport {
+  width: 100%;
+  padding: 1rem;
+  background-color: #1F3A93;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 2rem;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button#generateReport:hover:not(:disabled) {
+  background-color: #152968;
+}
+
+button#generateReport:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Estado de botão desabilitado (quando está carregando) */
+button#generateReport:disabled {
+  background-color: #95A5A6;
+  cursor: not-allowed;
+}
