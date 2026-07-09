@@ -1,8 +1,9 @@
 import { initUI } from './ui/render.js';
 import { getUsers, postReport } from './api/apiService.js';
 import { eventBus } from './events/eventBus.js';
-// Importação atualizada para utilizar o gerador de Excel
 import { downloadExcel } from './utils/exportExcel.js';
+// Importação do serviço isolado do Google Sheets
+import { sendToGoogleSheets } from './api/googleSheetsService.js';
 
 async function bootstrap() {
   // 1. Inicializa os ouvintes da interface
@@ -53,6 +54,10 @@ async function bootstrap() {
       // Simula o POST para o endpoint /reports exigido pelo case
       generateBtn.textContent = 'Enviando dados...';
       await postReport(latestMetrics);
+
+      // Executa a integração com o Google Sheets de forma desacoplada
+      generateBtn.textContent = 'Sincronizando Sheets...';
+      await sendToGoogleSheets(latestMetrics);
       
       // Mensagem de sucesso final
       generateBtn.textContent = 'Relatório Concluído!';
