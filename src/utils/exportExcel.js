@@ -117,8 +117,8 @@ export async function downloadExcel(metrics, filename = 'relatorio_usuario_dashb
     id: metrics.userId,
     nome: metrics.userName,
     posts: metrics.quantidadePosts,
-    chars: metrics.mediaCaracteres,
-    comments: metrics.mediaComentarios,
+    chars: Number(metrics.mediaCaracteres),     
+    comments: Number(metrics.mediaComentarios), 
     status: metrics.isUserActive ? 'Ativo' : 'Inativo'
   });
 
