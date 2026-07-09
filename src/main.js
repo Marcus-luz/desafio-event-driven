@@ -72,5 +72,5 @@ async function bootstrap() {
   });
 }
 
-// Garante que o script só rode quando o HTML estiver 100% carregado na tela
-document.addEventListener('DOMContentLoaded', bootstrap);
+// Como type="module" já é adiado por padrão, podemos executar diretamente.
+bootstrap();
