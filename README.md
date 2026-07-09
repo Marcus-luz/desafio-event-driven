@@ -24,21 +24,26 @@ O projeto foi construído seguindo uma **arquitetura orientada a eventos (Event-
 A aplicação é dividida em camadas com responsabilidades bem definidas, que **não se conhecem diretamente** — a comunicação entre a camada de estado (regra de negócio) e a camada de interface acontece exclusivamente através do `EventBus`.
 
 ```mermaid
-graph TD
-    A["index.html"] --> B["main.js (bootstrap/orquestrador)"]
-    B --> C["ui/render.js (View)"]
-    B --> D["store/appState.js (State/Regras de Negócio)"]
-    C -- "escuta eventos" --> E["events/eventBus.js"]
-    D -- "emite eventos" --> E
-    D --> F["api/apiService.js"]
-    F --> G["cache/dataCache.js"]
-    F --> H["JSONPlaceholder API"]
-    C --> I["utils/debounce.js"]
-    B --> J["utils/exportExcel.js"]
-    J --> K["ExcelJS + FileSaver.js (CDN)"]
-    B --> L["api/googleSheetsService.js"]
-    L --> M["Google Apps Script WebApp (mock)"]
+graph LR
+    A[index.html] --> B[main.js]
+    B --> C[render.js]
+    B --> D[appState.js]
+    B --> J[exportExcel.js]
+    B --> L[googleSheetsService.js]
+
+    C -- eventos --> E[eventBus.js]
+    D -- eventos --> E
+    C --> I[debounce.js]
+
+    D --> F[apiService.js]
+    F --> G[dataCache.js]
+    F --> H[JSONPlaceholder API]
+
+    J --> K[ExcelJS + FileSaver]
+    L --> M[Google Sheets - mock]
 ```
+
+> Legenda: `main.js` orquestra View (`render.js`), State (`appState.js`) e as integrações de saída (`exportExcel.js`, `googleSheetsService.js`). View e State só se comunicam através do `eventBus.js`. Detalhes de cada camada na tabela abaixo.
 
 **Camadas:**
 
