@@ -23,36 +23,28 @@ export function initUI() {
   elements.minPosts.addEventListener('input', handleInput);
 
   // Escuta a troca de usuário no select
-  elements.userSelect.addEventListener('change', (e) => {
+ elements.userSelect.addEventListener('change', (e) => {
     const userId = e.target.value;
+    // Captura o nome do utilizador no select
+    const userName = e.target.options[e.target.selectedIndex].text; 
+    
     if (userId) {
-      appState.loadUser(userId);
+      appState.loadUser(userId, userName);
     } else {
-      elements.results.innerHTML = ''; // Limpa a tela se voltar para a opção vazia
+      elements.results.innerHTML = ''; 
     }
   });
 
-  // Assina os eventos orquestrados pelo EventBus
-  eventBus.on('LOADING_START', () => {
-    elements.results.innerHTML = '<p>Carregando e processando dados...</p>';
-  });
-
-  eventBus.on('METRICS_UPDATED', renderMetrics);
-  
-  eventBus.on('ERROR', (msg) => {
-    elements.results.innerHTML = `<p style="color: red;">Erro: ${msg}</p>`;
-  });
-}
-
-// Função pura dedicada a atualizar a div de resultados
+// Na função renderMetrics, mostramos as médias:
 function renderMetrics(metrics) {
   elements.results.innerHTML = `
-    <h3>Métricas Calculadas</h3>
+    <h3>Métricas Calculadas para ${metrics.userName}</h3>
     <ul>
-      <li>Total de Posts do Usuário: <strong>${metrics.totalPosts}</strong></li>
-      <li>Posts Válidos (filtro de caracteres): <strong>${metrics.validPostsCount}</strong></li>
-      <li>Total de Comentários (nos posts válidos): <strong>${metrics.totalComments}</strong></li>
-      <li>Status do Usuário: <strong>${metrics.isUserActive ? 'Ativo' : 'Inativo'}</strong></li>
+      <li>Quantidade de Posts (Válidos): <strong>${metrics.quantidadePosts}</strong></li>
+      <li>Média de Caracteres: <strong>${metrics.mediaCaracteres}</strong></li>
+      <li>Média de Comentários: <strong>${metrics.mediaComentarios}</strong></li>
+      <li>Status do Utilizador: <strong>${metrics.isUserActive ? 'Ativo' : 'Inativo'}</strong></li>
     </ul>
   `;
+}
 }
