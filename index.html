@@ -1,37 +1,49 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <meta charset="UTF-8">
   <title>Test Case - Automação</title>
+  
+  <link rel="stylesheet" href="./frontend/style.css">
 </head>
 <body>
 
-  <h1>Análise de Usuários</h1>
+  <div class="container">
+    
+    <h1>Análise de Engajamento</h1>
 
-  <h2>Usuários</h2>
-  <select id="userSelect">
-    <option value="">Selecione um usuário</option>
-  </select>
+    <h2>Usuários</h2>
+    <div class="form-group">
+      <select id="userSelect">
+        <option value="">Selecione um perfil na base...</option>
+      </select>
+    </div>
 
-  <h2>Filtros</h2>
+    <h2>Filtros de Qualidade</h2>
+    <div class="form-group">
+      <label for="minChars">Mínimo de caracteres do post:</label>
+      <input type="number" id="minChars" placeholder="Ex: 100" />
+    </div>
+    
+    <div class="form-group">
+      <label for="minPosts">Mínimo de posts para perfil ser ativo:</label>
+      <input type="number" id="minPosts" placeholder="Ex: 5" />
+    </div>
 
-  <label>Mínimo de caracteres do post:</label>
-  <input type="number" id="minChars" />
+    <h2>Métricas em Tempo Real</h2>
+    <div id="results">
+      <p style="color: #7F8C8D; font-style: italic; font-size: 0.9rem;">
+        Selecione um usuário para visualizar os dados.
+      </p>
+    </div>
 
-  <br><br>
+    <button id="generateReport">Gerar Relatório Executivo</button>
 
-  <label>Mínimo de posts para ser ativo:</label>
-  <input type="number" id="minPosts" />
+  </div>
 
-  <h2>Resultados</h2>
-  <div id="results"></div>
-
-  <h2>Ações</h2>
-  <button id="generateReport">Gerar Relatório</button>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  
   <script type="module" src="./src/main.js"></script>
 
 </body>

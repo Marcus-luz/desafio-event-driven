@@ -22,20 +22,33 @@ export function initUI() {
   elements.minChars.addEventListener('input', handleInput);
   elements.minPosts.addEventListener('input', handleInput);
 
-  // Escuta a troca de usuário no select
- elements.userSelect.addEventListener('change', (e) => {
+  // Escuta a troca de utilizador no select
+  elements.userSelect.addEventListener('change', (e) => {
     const userId = e.target.value;
-    // Captura o nome do utilizador no select
-    const userName = e.target.options[e.target.selectedIndex].text; 
     
     if (userId) {
+      // Captura o NOME do utilizador selecionado para enviar ao State
+      const userName = e.target.options[e.target.selectedIndex].text;
       appState.loadUser(userId, userName);
     } else {
-      elements.results.innerHTML = ''; 
+      elements.results.innerHTML = ''; // Limpa a tela se voltar para a opção vazia
     }
   });
 
-// Na função renderMetrics, mostramos as médias:
+  // Assina os eventos orquestrados pelo EventBus
+  eventBus.on('LOADING_START', () => {
+    elements.results.innerHTML = '<p>Carregando e processando dados...</p>';
+  });
+
+  // É fundamental que esta linha exista para a tela atualizar!
+  eventBus.on('METRICS_UPDATED', renderMetrics);
+  
+  eventBus.on('ERROR', (msg) => {
+    elements.results.innerHTML = `<p style="color: red;">Erro: ${msg}</p>`;
+  });
+}
+
+// Função pura dedicada a atualizar a div de resultados com as MÉDIAS
 function renderMetrics(metrics) {
   elements.results.innerHTML = `
     <h3>Métricas Calculadas para ${metrics.userName}</h3>
@@ -46,5 +59,4 @@ function renderMetrics(metrics) {
       <li>Status do Utilizador: <strong>${metrics.isUserActive ? 'Ativo' : 'Inativo'}</strong></li>
     </ul>
   `;
-}
 }

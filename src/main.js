@@ -1,7 +1,8 @@
 import { initUI } from './ui/render.js';
 import { getUsers, postReport } from './api/apiService.js';
 import { eventBus } from './events/eventBus.js';
-import { downloadCSV } from './utils/exportCSV.js';
+// Importação atualizada para utilizar o gerador de Excel
+import { downloadExcel } from './utils/exportExcel.js';
 
 async function bootstrap() {
   // 1. Inicializa os ouvintes da interface
@@ -36,24 +37,36 @@ async function bootstrap() {
       return;
     }
 
-    // Faz o download do arquivo CSV
-    downloadCSV(latestMetrics);
+    const originalText = generateBtn.textContent;
 
-    // Simula o POST para o endpoint /reports exigido pelo case
     try {
-      const originalText = generateBtn.textContent;
-      generateBtn.textContent = 'Enviando dados...';
+      // Bloqueia o botão e dá feedback visual de geração
+      generateBtn.textContent = 'Gerando Excel...';
       generateBtn.disabled = true;
       
+      // Monta o nome do arquivo dinamicamente removendo espaços do nome do usuário
+      const nomeArquivo = `Dashboard_${latestMetrics.userName.replace(/\s+/g, '_')}.xlsx`;
+      
+      // Faz o download do arquivo Excel
+      await downloadExcel(latestMetrics, nomeArquivo);
+
+      // Simula o POST para o endpoint /reports exigido pelo case
+      generateBtn.textContent = 'Enviando dados...';
       await postReport(latestMetrics);
       
-      generateBtn.textContent = 'Relatório Enviado!';
+      // Mensagem de sucesso final
+      generateBtn.textContent = 'Relatório Concluído!';
+      
+      // Restaura o botão após 2.5 segundos
       setTimeout(() => {
         generateBtn.textContent = originalText;
         generateBtn.disabled = false;
-      }, 2000);
+      }, 2500);
+
     } catch (error) {
+      console.error(error);
       alert('Erro ao processar o relatório.');
+      generateBtn.textContent = originalText;
       generateBtn.disabled = false;
     }
   });

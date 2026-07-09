@@ -4,23 +4,23 @@ import { getPostsAndComments } from '../api/apiService.js';
 class AppState {
   constructor() {
     this.currentUserId = null;
-    this.currentUserName = ''; // NOVO: Precisamos do nome para o CSV
-    this.posts = [];
+    this.currentUserName = '';
+    this.posts = []; 
     this.filters = {
       minChars: 0,
       minPosts: 0
     };
   }
 
-  // NOVO: Agora recebemos o nome também
+  // Acionado quando o utilizador escolhe alguém no <select>
   async loadUser(userId, userName) {
     this.currentUserId = userId;
-    this.currentUserName = userName;
+    this.currentUserName = userName; // Guardamos o nome para o CSV
     eventBus.emit('LOADING_START');
     
     try {
       this.posts = await getPostsAndComments(userId);
-      this.calculateMetrics();
+      this.calculateMetrics(); // Calcula e atualiza a tela
     } catch (error) {
       eventBus.emit('ERROR', 'Falha ao carregar os dados do utilizador.');
     } finally {
@@ -28,11 +28,13 @@ class AppState {
     }
   }
 
+  // Acionado quando o utilizador digita nos campos de filtro
   updateFilters(newFilters) {
     this.filters = { ...this.filters, ...newFilters };
     this.calculateMetrics();
   }
 
+  // Onde a mágica matemática das médias acontece
   calculateMetrics() {
     if (!this.currentUserId || this.posts.length === 0) return;
 
@@ -48,7 +50,7 @@ class AppState {
       somaComentarios += post.comments.length;
     });
 
-    // Calcula as médias (evitando divisão por zero)
+    // Calcula as médias (evitando divisão por zero se não houver posts válidos)
     const mediaCaracteres = quantidadePosts > 0 ? (somaCaracteres / quantidadePosts).toFixed(2) : 0;
     const mediaComentarios = quantidadePosts > 0 ? (somaComentarios / quantidadePosts).toFixed(2) : 0;
 
@@ -64,6 +66,7 @@ class AppState {
       isUserActive
     };
 
+    // Avisa a UI que os cálculos estão prontos
     eventBus.emit('METRICS_UPDATED', metrics);
   }
 }
