@@ -8,16 +8,19 @@ O projeto foi construído seguindo uma **arquitetura orientada a eventos (Event-
 
 ## 📋 Sumário
 
-- [Arquitetura do Sistema](#-arquitetura-do-sistema)
-- [Fluxo de Eventos](#-fluxo-de-eventos)
-- [Linguagens, Bibliotecas e Ferramentas](#-linguagens-bibliotecas-e-ferramentas)
-- [Decisões Técnicas](#-decisões-técnicas)
-- [Problemas e Soluções](#-problemas-e-soluções)
-- [Testes](#-testes)
-- [Estrutura de Pastas](#-estrutura-de-pastas)
-- [Como Executar](#-como-executar)
+- [Arquitetura do Sistema](#arquitetura-do-sistema)
+- [Fluxo de Eventos](#fluxo-de-eventos)
+- [Endpoints da API](#endpoints-da-api)
+- [Linguagens, Bibliotecas e Ferramentas](#linguagens-bibliotecas-e-ferramentas)
+- [Decisões Técnicas](#decisoes-tecnicas)
+- [Problemas e Soluções](#problemas-e-solucoes)
+- [Testes](#testes)
+- [Estrutura de Pastas](#estrutura-de-pastas)
+- [Como Executar](#como-executar)
 
 ---
+
+<a id="arquitetura-do-sistema"></a>
 
 ## 🏗️ Arquitetura do Sistema
 
@@ -61,6 +64,8 @@ graph LR
 Essa separação segue o princípio de **Single Responsibility**: cada módulo faz uma única coisa, o que facilita testes isolados (ver seção [Testes](#-testes)) e permite trocar qualquer peça (ex.: trocar a API, trocar a lib de Excel) sem impactar as demais.
 
 ---
+
+<a id="fluxo-de-eventos"></a>
 
 ## 🔄 Fluxo de Eventos
 
@@ -111,6 +116,37 @@ sequenceDiagram
 
 ---
 
+<a id="endpoints-da-api"></a>
+
+## 🔌 Endpoints da API
+
+### API real consumida — JSONPlaceholder
+
+Todas as chamadas abaixo são feitas por `src/api/apiService.js`, sempre passando primeiro pelo `dataCache.js` (só há requisição de rede em caso de cache miss).
+
+| Endpoint | Método | Descrição | Parâmetros |
+|---|---|---|---|
+| `https://jsonplaceholder.typicode.com/users` | `GET` | Lista todos os usuários, usada para popular o `<select>` inicial | — |
+| `https://jsonplaceholder.typicode.com/posts` | `GET` | Lista os posts de um usuário específico | Query string `userId={id}` |
+| `https://jsonplaceholder.typicode.com/comments` | `GET` | Lista os comentários de um post específico (disparada em paralelo, uma vez por post, via `Promise.all`) | Query string `postId={id}` |
+
+**Cache:** as respostas de `/users` e de `/posts?userId={id}` ficam em memória (`apiCache`) com as chaves `all_users` e `posts_user_{id}`, respectivamente — evitando refazer a mesma requisição ao alternar entre usuários já consultados.
+
+### Endpoints simulados (mock) — contrato para produção
+
+O desafio não fornece backend nem credenciais reais para envio do relatório e sincronização com planilhas, então essas duas etapas são simuladas com `setTimeout`, mas com o contrato de requisição já definido em código (comentado), pronto para ser ativado quando houver um endpoint real.
+
+| Endpoint (mock) | Método | Onde está no código | Corpo enviado (body) | Resposta simulada |
+|---|---|---|---|---|
+| Envio do relatório | `POST` (simulado) | `apiService.js` → `postReport(reportData)` | Objeto de métricas calculadas (`reportData`) | `{ status: 'sucesso', mensagem: 'Relatório salvo com sucesso!' }` após 500ms |
+| `https://script.google.com/macros/s/AKfycbz_MOCK_URL/exec` (URL fictícia) | `POST`, `mode: 'no-cors'` | `googleSheetsService.js` → `sendToGoogleSheets(metrics)` | `JSON.stringify(metrics)`, header `Content-Type: application/json` | `true` após 800ms (simulando latência do Google Apps Script) |
+
+> A implementação real da chamada `fetch` para o Google Apps Script já está escrita dentro de `sendToGoogleSheets` (comentada), documentando exatamente a estrutura de requisição que seria usada em produção assim que uma URL de deploy real estivesse disponível.
+
+---
+
+<a id="linguagens-bibliotecas-e-ferramentas"></a>
+
 ## 🛠️ Linguagens, Bibliotecas e Ferramentas
 
 | Ferramenta | Uso no projeto |
@@ -127,6 +163,8 @@ sequenceDiagram
 Não há bundler (Webpack/Vite) — o projeto roda com módulos ES nativos do navegador (`type="module"`), o que elimina a necessidade de etapa de build.
 
 ---
+
+<a id="decisoes-tecnicas"></a>
 
 ## 🎯 Decisões Técnicas
 
@@ -148,6 +186,8 @@ Não há bundler (Webpack/Vite) — o projeto roda com módulos ES nativos do na
 
 ---
 
+<a id="problemas-e-solucoes"></a>
+
 ## 🐞 Problemas e Soluções
 
 | Problema | Solução adotada |
@@ -161,6 +201,8 @@ Não há bundler (Webpack/Vite) — o projeto roda com módulos ES nativos do na
 | Testar código que manipula o DOM (`render.js`) sem um navegador real | Uso de `jest-environment-jsdom` para simular o DOM em ambiente Node, permitindo testes de integração que emitem eventos reais no `eventBus` e verificam o HTML resultante |
 
 ---
+
+<a id="testes"></a>
 
 ## 🧪 Testes
 
@@ -182,6 +224,8 @@ npm test
 ```
 
 ---
+
+<a id="estrutura-de-pastas"></a>
 
 ## 📁 Estrutura de Pastas
 
@@ -217,23 +261,40 @@ desafio-event-driven/
 
 ---
 
+<a id="como-executar"></a>
+
 ## 🚀 Como Executar
 
-Como o projeto usa **módulos ES nativos** (`<script type="module">`), não é possível abrir o `index.html` diretamente no navegador (`file://`) devido a restrições de CORS do navegador para módulos. É necessário servir os arquivos por HTTP:
+Como o projeto usa **módulos ES nativos** (`<script type="module">`), não é possível abrir o `index.html` diretamente no navegador (`file://`) — isso esbarra em restrições de CORS do navegador para módulos. É necessário servir os arquivos por um servidor HTTP local. Abaixo estão duas formas rápidas e padrão de mercado para subir a aplicação.
+
+### Opção 1: VS Code + Live Server (a mais rápida)
+
+Se você estiver usando o Visual Studio Code como IDE:
+
+1. Vá na aba de extensões e instale a extensão **Live Server** (autor: Ritwick Dey).
+2. Abra o arquivo `index.html`.
+3. Clique no botão **"Go Live"** no canto inferior direito do VS Code (ou clique com o botão direito no HTML e escolha **"Open with Live Server"**).
+4. O navegador abrirá automaticamente em algo como `http://127.0.0.1:5500`.
+
+### Opção 2: Node.js
+
+Se você tem o Node.js instalado, abra o terminal na raiz do projeto e rode:
 
 ```bash
-# Opção 1: usando o pacote "serve"
-npx serve .
-
-# Opção 2: usando o servidor embutido do Python
-python -m http.server 8000
+npx serve
 ```
 
-Depois, acesse a URL indicada pelo servidor (ex.: `http://localhost:8000`) no navegador.
+O terminal vai te devolver um endereço (geralmente `http://localhost:3000`) — basta abrir no navegador.
 
-Para rodar a suíte de testes:
+> Alternativa equivalente, caso prefira Python: `python -m http.server 8000` e acesse `http://localhost:8000`.
+
+### 🧪 Rodando os testes automatizados
+
+O projeto já vem com o **Jest** configurado no `package.json` (dependência, suporte a ES Modules e o script de teste já estão prontos no repositório) — não é preciso instalar o Jest manualmente nem rodar `npm init`. Basta instalar as dependências e rodar a suíte:
 
 ```bash
 npm install
 npm test
 ```
+
+Isso executa os 5 arquivos de teste descritos na seção [Testes](#-testes): regras de negócio, cache, debounce, integração com a UI (via jsdom) e o teste de performance com 100.000 posts.
