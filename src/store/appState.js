@@ -10,6 +10,16 @@ class AppState {
       minChars: 0,
       minPosts: 0
     };
+    // Guarda as últimas métricas calculadas de CADA usuário já analisado
+    // na sessão (chave = userId), para que o relatório final possa
+    // consolidar todos os perfis, e não apenas o selecionado no momento.
+    this.analyzedUsers = new Map();
+  }
+
+  // Retorna as métricas de todos os usuários já analisados nesta sessão,
+  // na ordem em que foram calculadas.
+  getAllMetrics() {
+    return Array.from(this.analyzedUsers.values());
   }
 
   // Acionado quando o utilizador escolhe alguém no <select>
@@ -34,9 +44,10 @@ class AppState {
     this.calculateMetrics();
   }
 
-  // Onde a mágica matemática das médias acontece
+  // matemática das médias
   calculateMetrics() {
-    if (!this.currentUserId || this.posts.length === 0) return;
+  
+    if (!this.currentUserId) return;
 
     // Filtra os posts pelo mínimo de caracteres
     const validPosts = this.posts.filter(post => post.body.length >= this.filters.minChars);
@@ -65,6 +76,10 @@ class AppState {
       mediaComentarios,
       isUserActive
     };
+
+    // Registra/atualiza este usuário na lista de analisados da sessão,
+    // para que o relatório final possa consolidar todos, não só o atual.
+    this.analyzedUsers.set(this.currentUserId, metrics);
 
     // Avisa a UI que os cálculos estão prontos
     eventBus.emit('METRICS_UPDATED', metrics);
