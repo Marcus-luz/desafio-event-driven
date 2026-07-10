@@ -1,4 +1,4 @@
-export async function downloadExcel(metrics, filename = 'relatorio_usuario_dashboard.xlsx') {
+export async function downloadExcel(metrics, allMetrics = [metrics], filename = 'relatorio_usuario_dashboard.xlsx') {
   // A biblioteca ExcelJS já estará disponível globalmente devido à tag <script>
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Sistema de Automação';
@@ -33,6 +33,15 @@ export async function downloadExcel(metrics, filename = 'relatorio_usuario_dashb
   
   dashSheet.getCell('C5').value = metrics.userName.toUpperCase();
   dashSheet.getCell('C5').font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF2C3E50' } };
+
+  // ID do usuário — campo exigido pela Task 4 do case, que estava presente
+  // na aba "Dados do Sistema" mas faltava na aba visual (Dashboard).
+  dashSheet.getCell('D5').value = 'ID:';
+  dashSheet.getCell('D5').font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF7F8C8D' } };
+  dashSheet.getCell('D5').alignment = { horizontal: 'right' };
+
+  dashSheet.getCell('E5').value = metrics.userId;
+  dashSheet.getCell('E5').font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FF2C3E50' } };
 
   // 3. FUNÇÃO PARA DESENHAR CARDS DE KPI (Indicadores de Performance)
   const createCard = (col, titleText, valueText, titleColor, valueColor) => {
@@ -94,8 +103,11 @@ export async function downloadExcel(metrics, filename = 'relatorio_usuario_dashb
 
 
   // ==========================================
-  // ABA 2: DADOS (Tabela Oculta/Detalhada)
+  // ABA 2: DADOS (Tabela Consolidada de Todos os Usuários Analisados)
   // ==========================================
+  // Antes esta aba trazia apenas uma linha (o usuário selecionado no
+  // momento do clique). Agora consolida TODOS os usuários já analisados
+  // na sessão (allMetrics).
   const dataSheet = workbook.addWorksheet('Dados do Sistema');
   
   dataSheet.columns = [
@@ -113,26 +125,33 @@ export async function downloadExcel(metrics, filename = 'relatorio_usuario_dashb
     cell.alignment = { horizontal: 'center' };
   });
 
-  const row = dataSheet.addRow({
-    id: metrics.userId,
-    nome: metrics.userName,
-    posts: metrics.quantidadePosts,
-    chars: Number(metrics.mediaCaracteres),     
-    comments: Number(metrics.mediaComentarios), 
-    status: metrics.isUserActive ? 'Ativo' : 'Inativo'
-  });
+  // Lista de usuários a exportar: todos os já analisados na sessão.
+  // Fallback para [metrics] garante compatibilidade caso o chamador não
+  // informe allMetrics (ex.: uso isolado da função em outro contexto).
+  const linhasParaExportar = allMetrics.length > 0 ? allMetrics : [metrics];
 
-  const statusCell = row.getCell('status');
-  statusCell.font = { bold: true };
-  statusCell.alignment = { horizontal: 'center' };
-  
-  if (metrics.isUserActive) {
-    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4EDDA' } }; 
-    statusCell.font = { color: { argb: 'FF155724' }, bold: true };
-  } else {
-    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } }; 
-    statusCell.font = { color: { argb: 'FF721C24' }, bold: true };
-  }
+  linhasParaExportar.forEach((m) => {
+    const row = dataSheet.addRow({
+      id: m.userId,
+      nome: m.userName,
+      posts: m.quantidadePosts,
+      chars: Number(m.mediaCaracteres),
+      comments: Number(m.mediaComentarios),
+      status: m.isUserActive ? 'Ativo' : 'Inativo'
+    });
+
+    const statusCell = row.getCell('status');
+    statusCell.font = { bold: true };
+    statusCell.alignment = { horizontal: 'center' };
+
+    if (m.isUserActive) {
+      statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4EDDA' } };
+      statusCell.font = { color: { argb: 'FF155724' }, bold: true };
+    } else {
+      statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
+      statusCell.font = { color: { argb: 'FF721C24' }, bold: true };
+    }
+  });
 
   // ==========================================
   // EXPORTAÇÃO DO ARQUIVO (DOWNLOAD)
