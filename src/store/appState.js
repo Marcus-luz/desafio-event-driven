@@ -1,5 +1,6 @@
 import { eventBus } from '../events/eventBus.js';
-import { getPostsAndComments } from '../api/apiService.js';
+import { getPostsAndComments, getUsers } from '../api/apiService.js';
+import { calculateUserMetrics } from '../utils/metricsCalculator.js';
 
 class AppState {
   constructor() {
@@ -20,6 +21,25 @@ class AppState {
   // na ordem em que foram calculadas.
   getAllMetrics() {
     return Array.from(this.analyzedUsers.values());
+  }
+
+  // Busca TODOS os usuários da base (não apenas os já clicados na tela)
+  // e calcula as métricas de cada um, aplicando os filtros atuais.
+  async getAllSystemMetrics() {
+    const users = await getUsers();
+
+    const metricsPromises = users.map(async (user) => {
+      try {
+        const posts = await getPostsAndComments(user.id);
+        return calculateUserMetrics(posts, this.filters, user.id, user.name);
+      } catch (error) {
+        console.error(`[getAllSystemMetrics] Falha ao processar usuário ${user.id}:`, error);
+        return null; // Um usuário com falha não deve derrubar o relatório inteiro
+      }
+    });
+
+    const results = await Promise.all(metricsPromises);
+    return results.filter(Boolean); // Remove eventuais falhas (null)
   }
 
   // Acionado quando o utilizador escolhe alguém no <select>
@@ -49,33 +69,13 @@ class AppState {
   
     if (!this.currentUserId) return;
 
-    // Filtra os posts pelo mínimo de caracteres
-    const validPosts = this.posts.filter(post => post.body.length >= this.filters.minChars);
-    
-    const quantidadePosts = validPosts.length;
-    let somaCaracteres = 0;
-    let somaComentarios = 0;
-
-    validPosts.forEach(post => {
-      somaCaracteres += post.body.length;
-      somaComentarios += post.comments.length;
-    });
-
-    // Calcula as médias (evitando divisão por zero se não houver posts válidos)
-    const mediaCaracteres = quantidadePosts > 0 ? (somaCaracteres / quantidadePosts).toFixed(2) : 0;
-    const mediaComentarios = quantidadePosts > 0 ? (somaComentarios / quantidadePosts).toFixed(2) : 0;
-
-    // Define o status
-    const isUserActive = quantidadePosts >= this.filters.minPosts;
-
-    const metrics = {
-      userId: this.currentUserId,
-      userName: this.currentUserName,
-      quantidadePosts,
-      mediaCaracteres,
-      mediaComentarios,
-      isUserActive
-    };
+    // Delega a matemática das médias para a função pura compartilhada,
+    const metrics = calculateUserMetrics(
+      this.posts,
+      this.filters,
+      this.currentUserId,
+      this.currentUserName
+    );
 
     // Registra/atualiza este usuário na lista de analisados da sessão,
     // para que o relatório final possa consolidar todos, não só o atual.

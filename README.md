@@ -261,7 +261,8 @@ desafio-event-driven/
 │   │   └── render.js            # Manipulação do DOM
 │   └── utils/
 │       ├── debounce.js
-│       └── exportExcel.js       # Geração do relatório em Excel
+│       └── exportExcel.js          # Geração do relatório em Excel
+        └── metricsCalculator.js
 └── tests/
     ├── apiService.test.js
     ├── appState.test.js

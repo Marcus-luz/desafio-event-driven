@@ -48,16 +48,23 @@ async function bootstrap() {
     const originalText = generateBtn.textContent;
 
     try {
-      // Bloqueia o botão e dá feedback visual de geração
-      generateBtn.textContent = 'Gerando Excel...';
+      // Bloqueia o botão para evitar cliques duplicados durante a geração
       generateBtn.disabled = true;
-      
+
       // Monta o nome do arquivo dinamicamente removendo espaços do nome do usuário
       const nomeArquivo = `Dashboard_${latestMetrics.userName.replace(/\s+/g, '_')}.xlsx`;
-      
+
+      // Busca e calcula as métricas de TODOS os usuários da base (não
+      // apenas os já clicados na tela) para popular a 3ª aba do Excel.
+      generateBtn.textContent = 'Buscando todos os usuários...';
+      const allSystemMetrics = await appState.getAllSystemMetrics();
+
       // Faz o download do arquivo Excel. O Dashboard (aba 1) mostra o
-      // snapshot do usuário selecionado (latestMetrics);
-      await downloadExcel(latestMetrics, appState.getAllMetrics(), nomeArquivo);
+      // snapshot do usuário selecionado (latestMetrics); "Dados do
+      // Sistema" (aba 2) traz o histórico de cliques da sessão; "Todos
+      // os Usuários" (aba 3) traz a base inteira calculada automaticamente.
+      generateBtn.textContent = 'Gerando Excel...';
+      await downloadExcel(latestMetrics, appState.getAllMetrics(), allSystemMetrics, nomeArquivo);
 
       // Simula o POST para o endpoint /reports exigido pelo case
       generateBtn.textContent = 'Enviando dados...';

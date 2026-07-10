@@ -1,4 +1,4 @@
-export async function downloadExcel(metrics, allMetrics = [metrics], filename = 'relatorio_usuario_dashboard.xlsx') {
+export async function downloadExcel(metrics, allMetrics = [metrics], allSystemMetrics = [], filename = 'relatorio_usuario_dashboard.xlsx') {
   // A biblioteca ExcelJS já estará disponível globalmente devido à tag <script>
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Sistema de Automação';
@@ -105,9 +105,6 @@ export async function downloadExcel(metrics, allMetrics = [metrics], filename = 
   // ==========================================
   // ABA 2: DADOS (Tabela Consolidada de Todos os Usuários Analisados)
   // ==========================================
-  // Antes esta aba trazia apenas uma linha (o usuário selecionado no
-  // momento do clique). Agora consolida TODOS os usuários já analisados
-  // na sessão (allMetrics).
   const dataSheet = workbook.addWorksheet('Dados do Sistema');
   
   dataSheet.columns = [
@@ -126,8 +123,7 @@ export async function downloadExcel(metrics, allMetrics = [metrics], filename = 
   });
 
   // Lista de usuários a exportar: todos os já analisados na sessão.
-  // Fallback para [metrics] garante compatibilidade caso o chamador não
-  // informe allMetrics (ex.: uso isolado da função em outro contexto).
+  // Fallback para [metrics] garante compatibilidade.
   const linhasParaExportar = allMetrics.length > 0 ? allMetrics : [metrics];
 
   linhasParaExportar.forEach((m) => {
@@ -152,6 +148,52 @@ export async function downloadExcel(metrics, allMetrics = [metrics], filename = 
       statusCell.font = { color: { argb: 'FF721C24' }, bold: true };
     }
   });
+
+  // ==========================================
+  // ABA 3: TODOS OS USUÁRIOS DA BASE (Automático)
+  // ==========================================
+
+  if (allSystemMetrics.length > 0) {
+    const allUsersSheet = workbook.addWorksheet('Todos os Usuários');
+
+    allUsersSheet.columns = [
+      { header: 'ID Usuário', key: 'id', width: 15 },
+      { header: 'Nome', key: 'nome', width: 25 },
+      { header: 'Posts Válidos', key: 'posts', width: 18 },
+      { header: 'Méd. Caracteres', key: 'chars', width: 20 },
+      { header: 'Méd. Comentários', key: 'comments', width: 20 },
+      { header: 'Status', key: 'status', width: 15 }
+    ];
+
+    allUsersSheet.getRow(1).eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF415B76' } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    allSystemMetrics.forEach((m) => {
+      const row = allUsersSheet.addRow({
+        id: m.userId,
+        nome: m.userName,
+        posts: m.quantidadePosts,
+        chars: Number(m.mediaCaracteres),
+        comments: Number(m.mediaComentarios),
+        status: m.isUserActive ? 'Ativo' : 'Inativo'
+      });
+
+      const statusCell = row.getCell('status');
+      statusCell.font = { bold: true };
+      statusCell.alignment = { horizontal: 'center' };
+
+      if (m.isUserActive) {
+        statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4EDDA' } };
+        statusCell.font = { color: { argb: 'FF155724' }, bold: true };
+      } else {
+        statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
+        statusCell.font = { color: { argb: 'FF721C24' }, bold: true };
+      }
+    });
+  }
 
   // ==========================================
   // EXPORTAÇÃO DO ARQUIVO (DOWNLOAD)
