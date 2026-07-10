@@ -2,6 +2,7 @@ import { initUI } from './ui/render.js';
 import { getUsers, postReport } from './api/apiService.js';
 import { eventBus } from './events/eventBus.js';
 import { downloadExcel } from './utils/exportExcel.js';
+import { appState } from './store/appState.js';
 // Importação do serviço isolado do Google Sheets
 import { sendToGoogleSheets } from './api/googleSheetsService.js';
 
@@ -22,7 +23,13 @@ async function bootstrap() {
       userSelect.appendChild(option);
     });
   } catch (error) {
-    console.error('Falha crítica ao inicializar usuários.');
+
+    console.error('Falha crítica ao inicializar usuários.', error);
+    eventBus.emit(
+      'ERROR',
+      'Não foi possível carregar a lista de usuários. Verifique sua conexão e recarregue a página.'
+    );
+    userSelect.disabled = true;
   }
 
   // 3. Captura os dados mais recentes sempre que o estado atualizar
@@ -48,8 +55,9 @@ async function bootstrap() {
       // Monta o nome do arquivo dinamicamente removendo espaços do nome do usuário
       const nomeArquivo = `Dashboard_${latestMetrics.userName.replace(/\s+/g, '_')}.xlsx`;
       
-      // Faz o download do arquivo Excel
-      await downloadExcel(latestMetrics, nomeArquivo);
+      // Faz o download do arquivo Excel. O Dashboard (aba 1) mostra o
+      // snapshot do usuário selecionado (latestMetrics);
+      await downloadExcel(latestMetrics, appState.getAllMetrics(), nomeArquivo);
 
       // Simula o POST para o endpoint /reports exigido pelo case
       generateBtn.textContent = 'Enviando dados...';
