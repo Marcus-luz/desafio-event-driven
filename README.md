@@ -112,7 +112,8 @@ sequenceDiagram
 5. Dois ouvintes reagem ao mesmo evento de forma independente: `render.js` atualiza o DOM, e `main.js` guarda o resultado em uma variável local (`latestMetrics`) para uso posterior no botão de relatório.
 6. Se o usuário digitar nos campos de filtro, o `debounce` (300ms) evita recálculo a cada tecla; após a pausa, `appState.updateFilters()` roda e reemite `METRICS_UPDATED`.
 7. Se a busca falhar, `appState` emite `ERROR` e `render.js` mostra a mensagem em vermelho.
-8. Ao clicar em **"Gerar Relatório Executivo"**, `main.js` executa em sequência: geração do Excel (`downloadExcel`) → envio simulado do relatório (`postReport`) → sincronização simulada com Google Sheets (`sendToGoogleSheets`), atualizando o texto do botão a cada etapa para dar feedback visual ao usuário.
+8. Ao clicar em **"Gerar Relatório Executivo"**, `main.js` executa em sequência: geração do Excel (`downloadExcel`, com a lista de todos os usuários já analisados via `appState.getAllMetrics()`) → envio do relatório via POST real ao JSONPlaceholder (`postReport`) → sincronização simulada com Google Sheets (`sendToGoogleSheets`), atualizando o texto do botão a cada etapa para dar feedback visual ao usuário.
+9. Se a busca inicial de usuários (Task 1) falhar, `main.js` também emite `ERROR` no `eventBus` — antes esse caso só gerava um `console.error` silencioso; agora reaproveita o mesmo canal de erro usado no restante da aplicação, mantendo o comportamento consistente.
 
 ---
 
@@ -129,17 +130,19 @@ Todas as chamadas abaixo são feitas por `src/api/apiService.js`, sempre passand
 | `https://jsonplaceholder.typicode.com/users` | `GET` | Lista todos os usuários, usada para popular o `<select>` inicial | — |
 | `https://jsonplaceholder.typicode.com/posts` | `GET` | Lista os posts de um usuário específico | Query string `userId={id}` |
 | `https://jsonplaceholder.typicode.com/comments` | `GET` | Lista os comentários de um post específico (disparada em paralelo, uma vez por post, via `Promise.all`) | Query string `postId={id}` |
+| `https://jsonplaceholder.typicode.com/posts` | `POST` | Simula o envio do relatório (Task 5). O JSONPlaceholder é uma API fake que **não persiste nada de verdade** — sempre responde `201` com um `id` simulado — então continua sendo uma simulação de envio, mas exercitando um POST real | Body: objeto com as métricas calculadas (`reportData`) |
 
 **Cache:** as respostas de `/users` e de `/posts?userId={id}` ficam em memória (`apiCache`) com as chaves `all_users` e `posts_user_{id}`, respectivamente — evitando refazer a mesma requisição ao alternar entre usuários já consultados.
 
-### Endpoints simulados (mock) — contrato para produção
+### Endpoint simulado (mock) — contrato para produção
 
-O desafio não fornece backend nem credenciais reais para envio do relatório e sincronização com planilhas, então essas duas etapas são simuladas com `setTimeout`, mas com o contrato de requisição já definido em código (comentado), pronto para ser ativado quando houver um endpoint real.
+O desafio não fornece credenciais reais de Google Apps Script, então a sincronização com Google Sheets é simulada com `setTimeout`, mas com o contrato de requisição já definido em código (comentado), pronto para ser ativado quando houver uma URL de deploy real.
 
 | Endpoint (mock) | Método | Onde está no código | Corpo enviado (body) | Resposta simulada |
 |---|---|---|---|---|
-| Envio do relatório | `POST` (simulado) | `apiService.js` → `postReport(reportData)` | Objeto de métricas calculadas (`reportData`) | `{ status: 'sucesso', mensagem: 'Relatório salvo com sucesso!' }` após 500ms |
 | `https://script.google.com/macros/s/AKfycbz_MOCK_URL/exec` (URL fictícia) | `POST`, `mode: 'no-cors'` | `googleSheetsService.js` → `sendToGoogleSheets(metrics)` | `JSON.stringify(metrics)`, header `Content-Type: application/json` | `true` após 800ms (simulando latência do Google Apps Script) |
+
+> **Nota de revisão:** na primeira versão, `postReport` também era um `setTimeout` fixo, sem nenhuma requisição real. Isso cumpria a letra do requisito ("simular o envio"), mas deixava o requisito técnico "Consumo de API (GET e POST)" satisfeito apenas parcialmente (só havia GET real). A versão atual faz um POST de verdade para `/posts` do JSONPlaceholder — que é fake e não persiste nada — resolvendo os dois pontos ao mesmo tempo.
 
 > A implementação real da chamada `fetch` para o Google Apps Script já está escrita dentro de `sendToGoogleSheets` (comentada), documentando exatamente a estrutura de requisição que seria usada em produção assim que uma URL de deploy real estivesse disponível.
 
@@ -176,7 +179,11 @@ Não há bundler (Webpack/Vite) — o projeto roda com módulos ES nativos do na
 
 - **Padrão Singleton para `eventBus`, `appState` e `apiCache`:** como a aplicação tem um único estado global (não há múltiplas instâncias de usuário rodando em paralelo), exportar uma instância única de cada classe simplifica o acoplamento entre módulos sem a necessidade de um contêiner de injeção de dependência.
 
-- **Serviços mockados (`googleSheetsService.js` e `postReport`):** como o desafio não fornece credenciais reais de backend nem de Google Apps Script, essas integrações foram implementadas como simulações (`setTimeout` representando latência de rede), mas mantidas como **módulos isolados e prontos para produção** — o código real da chamada `fetch` para o Google Apps Script está escrito e comentado dentro de `googleSheetsService.js`, documentando exatamente como a troca do mock pela chamada real deve ser feita.
+- **`postReport` faz um POST real (não é mais um `setTimeout` fixo):** como o JSONPlaceholder é uma API fake que não persiste nada, um POST real para `/posts` continua sendo, na prática, uma simulação do envio — mas agora exercita de fato o ciclo requisição → resposta → erro (inclusive testado com cenário de falha HTTP em `apiService.test.js`), em vez de apenas resolver uma promessa fixa depois de um tempo.
+
+- **`googleSheetsService.js` fica mockado por decisão, não por limitação:** diferente do relatório (que usa `/posts` do JSONPlaceholder, uma API pública fake), a integração com Sheets exigiria um Apps Script implantado com uma URL própria. Colocar essa URL real em código versionado num repositório público exporia um endpoint aberto — qualquer pessoa com acesso ao repo poderia enviar dados para a planilha indefinidamente, mesmo depois do processo seletivo terminar. Como o item é um diferencial opcional e o case não fornece credenciais nem exige prova de execução ao vivo, o mock foi mantido como **módulo isolado e pronto para produção**, com o código real da chamada `fetch` escrito e comentado dentro do arquivo — documentando o padrão de integração sem expor um webhook pessoal publicamente.
+
+- **Relatório consolida todos os usuários analisados na sessão, não só o selecionado:** `appState` mantém um `Map` (`analyzedUsers`) que registra a última métrica calculada de cada usuário à medida que ele é selecionado. A aba "Dashboard" do Excel continua mostrando o snapshot do usuário atualmente selecionado (KPIs grandes, gráfico de barras), mas a aba "Dados do Sistema" agora lista uma linha por usuário já analisado — o que corresponde melhor à ideia de "relatório" pedida na Task 4, já que a Task 1 carrega todos os usuários da base.
 
 - **Geração de Excel no client-side com ExcelJS via CDN:** como não há bundler, as libs de terceiros (ExcelJS, FileSaver) foram carregadas via `<script>` no `index.html`, evitando a complexidade de configurar um empacotador apenas para duas dependências pontuais.
 
@@ -199,6 +206,10 @@ Não há bundler (Webpack/Vite) — o projeto roda com módulos ES nativos do na
 | Múltiplas etapas assíncronas no botão "Gerar Relatório" deixavam o usuário sem noção do que estava acontecendo | Atualização textual do botão a cada etapa do processo, com bloqueio (`disabled`) durante a execução e restauração automática após 2,5s |
 | Risco de a aplicação travar a interface ao processar grandes volumes de posts | Validado via teste de performance dedicado, garantindo o processamento de 100.000 posts em menos de 50ms com a abordagem de `filter`/`forEach` usada em `calculateMetrics()` |
 | Testar código que manipula o DOM (`render.js`) sem um navegador real | Uso de `jest-environment-jsdom` para simular o DOM em ambiente Node, permitindo testes de integração que emitem eventos reais no `eventBus` e verificam o HTML resultante |
+| `calculateMetrics()` tinha uma guarda inconsistente: retornava em silêncio (sem emitir `METRICS_UPDATED`) quando `this.posts.length === 0`, mesmo com um usuário selecionado, deixando a UI travada na última métrica exibida | Guarda simplificada para checar apenas `!this.currentUserId` — a proteção contra divisão por zero já existente no cálculo das médias cobre o caso de zero posts corretamente |
+| O relatório em Excel só incluía o usuário selecionado no momento do clique, mesmo a Task 1 carregando todos os usuários da base | `appState` passou a manter um histórico (`analyzedUsers`) de todos os usuários já analisados na sessão; `exportExcel.js` agora recebe essa lista e gera uma linha por usuário na aba "Dados do Sistema" |
+| Falha no carregamento inicial de usuários (Task 1) só gerava um `console.error`, sem nenhum feedback visível ao usuário | `main.js` passou a emitir o evento `ERROR` também nesse ponto, reaproveitando o mesmo canal já usado para falhas de carregamento de posts |
+| `postReport` era apenas um `setTimeout` resolvendo um objeto fixo — não exercitava uma requisição de verdade nem tinha caminho de erro | Passou a fazer um POST real para `/posts` do JSONPlaceholder (API fake que não persiste dados), cumprindo de fato o requisito técnico "Consumo de API (GET e POST)" e permitindo testar o cenário de falha HTTP |
 
 ---
 
