@@ -63,11 +63,41 @@ export async function getPostsAndComments(userId) {
   }
 }
 
-// Simula o envio do relatório
+// Simula o envio do relatório.
+// A decisão aqui foi enviar um POST real para /posts do JSONPlaceholder: a API é fake
+// (não persiste nada de verdade — sempre responde 201 com um id simulado),
+// então continua sendo, na prática, uma "simulação de envio", só que agora
+// exercitando de fato o ciclo de requisição/resposta/erro assíncrono.
 export async function postReport(reportData) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ status: 'sucesso', mensagem: 'Relatório salvo com sucesso!' });
-    }, 500);
-  });
+  if (!reportData || !reportData.userId) {
+    throw new Error('Dados do relatório inválidos ou ausentes.');
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/posts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify({
+        title: `Relatorio_${reportData.userName}`,
+        body: JSON.stringify(reportData),
+        userId: reportData.userId
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Falha ao enviar relatório (status ${response.status})`);
+    }
+
+    // O JSONPlaceholder devolve um id fake (ex.: 101) simulando persistência
+    const data = await response.json();
+
+    return {
+      status: 'sucesso',
+      mensagem: 'Relatório salvo com sucesso!',
+      id: data.id
+    };
+  } catch (error) {
+    console.error('[API Error] postReport:', error);
+    throw error;
+  }
 }
