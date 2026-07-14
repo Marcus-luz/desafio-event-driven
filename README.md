@@ -24,7 +24,7 @@ O projeto foi construído seguindo uma **arquitetura orientada a eventos (Event-
 
 ## 🏗️ Arquitetura do Sistema
 
-A aplicação é dividida em camadas com responsabilidades bem definidas, que **não se conhecem diretamente** — a comunicação entre a camada de estado (regra de negócio) e a camada de interface acontece exclusivamente através do `EventBus`.
+A aplicação é dividida em camadas com responsabilidades bem definidas, que **não se conhecem diretamente**, a comunicação entre a camada de estado (regra de negócio) e a camada de interface acontece exclusivamente através do `EventBus`.
 
 ```mermaid
 graph LR
